@@ -23,5 +23,8 @@ def confirmed_severity(confirmation_margin: float, delta: float) -> float:
 def trapezoidal_audc(checkpoints: list[int], severities: list[float], normalize: bool = True) -> float:
     if len(checkpoints) != len(severities) or len(checkpoints) < 2:
         raise ValueError("AUDC requires matching checkpoint and severity arrays")
-    area = float(np.trapezoid(severities, checkpoints))
+    trapezoid = getattr(np, "trapezoid", None)
+    if trapezoid is None:
+        trapezoid = np.trapz
+    area = float(trapezoid(severities, checkpoints))
     return area / (checkpoints[-1] - checkpoints[0]) if normalize else area

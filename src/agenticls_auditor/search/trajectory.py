@@ -8,7 +8,27 @@ from ..query_budget import QueryAccountant
 from .base import Observation, Policy
 
 
-ScoreFunction = Callable[[Candidate], float]
+@dataclass(frozen=True)
+class ScoreResult:
+    value: float
+    raw_model_calls: int = 0
+    cache_hits: int = 0
+
+    def __post_init__(self) -> None:
+        if self.raw_model_calls < 0:
+            raise ValueError(
+                "raw model calls cannot be negative"
+            )
+        if self.cache_hits < 0:
+            raise ValueError(
+                "cache hits cannot be negative"
+            )
+
+
+ScoreFunction = Callable[
+    [Candidate],
+    float | ScoreResult,
+]
 ValidationDecision = Callable[
     [int, Sequence[Observation], QueryAccountant],
     bool,
@@ -45,6 +65,21 @@ class TrajectoryRun:
     events: list[TrajectoryEvent]
     checkpoints: list[CheckpointSnapshot]
     accountant: QueryAccountant
+
+
+def _coerce_score_result(
+    result: float | ScoreResult,
+) -> ScoreResult:
+    if isinstance(result, ScoreResult):
+        return result
+
+    # Backward compatibility for existing score functions:
+    # a plain float represents one uncached scoring call.
+    return ScoreResult(
+        value=float(result),
+        raw_model_calls=1,
+        cache_hits=0,
+    )
 
 
 def validation_limit_at_query(
@@ -147,8 +182,15 @@ def run_trajectory(
         ):
             raise RuntimeError("policy selected an already evaluated candidate")
 
-        discovery_margin = float(discovery_score(candidate))
-        accountant.candidate(query_index=query_index, raw_calls=1)
+        discovery_result = _coerce_score_result(
+            discovery_score(candidate)
+        )
+        discovery_margin = discovery_result.value
+        accountant.candidate(
+            query_index=query_index,
+            raw_calls=discovery_result.raw_model_calls,
+            cache_hits=discovery_result.cache_hits,
+        )
         history.append(Observation(candidate, discovery_margin))
 
         incumbent = min(
@@ -185,13 +227,15 @@ def run_trajectory(
         validation_margin: float | None = None
 
         if wants_validation and remaining_allowance > 0:
-            validation_margin = float(
+            validation_result = _coerce_score_result(
                 validation_score(incumbent.candidate)
             )
+            validation_margin = validation_result.value
             accountant.validation(
                 query_index=query_index,
                 cumulative_limit=cumulative_limit,
-                raw_calls=1,
+                raw_calls=validation_result.raw_model_calls,
+                cache_hits=validation_result.cache_hits,
             )
             validation_performed = True
 
@@ -214,12 +258,16 @@ def run_trajectory(
             # The incumbent is frozen before hidden confirmation is evaluated.
             frozen_sequence = incumbent.candidate.sequence
             frozen_discovery_margin = incumbent.discovery_margin
-            hidden_margin = float(
+            confirmation_result = _coerce_score_result(
                 confirmation_score(incumbent.candidate)
             )
+            hidden_margin = confirmation_result.value
             accountant.confirmation(
                 query_index=query_index,
-                raw_calls=1,
+                raw_calls=(
+                    confirmation_result.raw_model_calls
+                ),
+                cache_hits=confirmation_result.cache_hits,
             )
 
             snapshots.append(

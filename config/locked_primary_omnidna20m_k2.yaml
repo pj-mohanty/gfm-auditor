@@ -1,0 +1,74 @@
+schema_version: 1
+status: locked_primary
+frozen: true
+base_repository_commit: 69cce9775dce33acc240b7b921747dc16d2c7dd3
+model:
+  name: omnidna-20m
+  model_id: zehui127/Omni-DNA-20M
+  revision: 3b64e6a5ed6c8f72bad76823ce728b3045243026
+  weights_sha256: f2927d1e3febd7f2309151fd1f6b47fc1e44500e6af6adad5342dcfc88b4680a
+representation:
+  layer: final_hidden_state
+  pooling: biological_token_mean
+  window_aggregation: global_biological_token_mean
+  distance: cosine
+  normalization: none
+  maximum_tokens_per_window: 250
+trajectory:
+  depth: 2
+  max_candidates: 40
+  checkpoints:
+  - 5
+  - 10
+  - 20
+  - 40
+  seeds:
+  - 11
+  - 22
+  - 33
+  - 44
+  - 55
+  policies:
+  - random
+  - fixed_multistage
+  - auditor
+  validation_allowances:
+    5: 2
+    10: 3
+    20: 5
+    40: 10
+controls:
+  assignment_seed: 42
+  minimum_discovery: 4
+  minimum_validation: 4
+  minimum_confirmation: 8
+  discovery_fraction: 0.25
+  validation_fraction: 0.25
+  confirmation_fraction: 0.5
+calibration:
+  delta: 0.0004979782302045738
+  quantile: 0.95
+  formula: Q_0.95(abs(M_B1 - M_B2) / 2)
+  population: unique frozen development checkpoint incumbents
+  record_count: 31
+  development_source_sha256: 05a0ae4fa0ec6f5ee3f7577793b0e6539f4b1689cdf9e1788e1c418641a64b8b
+  development_manifest_sha256: 81ddbf08bcc48baadbce9699a0653c087ab450f17b4a6f9d1b76df9a123926d6
+  metadata_sha256: 9c0e82e320d168eb9685abcb80dd0065b44ff4d7071720950a752ecd56ee568d
+locked_split:
+  gene_count: 50
+  candidates_per_gene: 40
+  candidate_count: 2000
+  selection_seed: 42
+  selection_start_rank: 6
+  selection_end_rank: 55
+  source_filename: locked_primary_50_sources.csv
+  source_sha256: 9b7152e47dcd82f4f71010194b6d586a7f5c648be38a2df156010d7cc4643341
+  manifest_filename: locked_primary_50_control_manifest.jsonl
+  manifest_sha256: 3c2388efcf3b99ac4da3be7c140d468efb7abda8e70e712e094ec4604325780b
+analysis:
+  primary_comparison: auditor_minus_fixed_multistage
+  independent_unit: gene
+  seed_aggregation: mean_within_gene_and_policy
+  bootstrap_replicates: 10000
+  bootstrap_seed: 2026
+  confidence_level: 0.95

@@ -54,7 +54,7 @@ class CheckpointSnapshot:
     checkpoint: int
     incumbent_sequence: str
     discovery_margin: float
-    confirmation_margin: float
+    confirmation_margin: float | None
     candidate_evaluations: int
     validation_actions: int
     raw_model_calls: int
@@ -134,7 +134,7 @@ def run_trajectory(
     candidates: list[Candidate],
     discovery_score: ScoreFunction,
     validation_score: ScoreFunction,
-    confirmation_score: ScoreFunction,
+    confirmation_score: ScoreFunction | None = None,
     max_candidates: int = 40,
     checkpoints: Sequence[int] = (5, 10, 20, 40),
     validation_allowances: Mapping[int, int] | None = None,
@@ -265,17 +265,17 @@ def run_trajectory(
             # The incumbent is frozen before hidden confirmation is evaluated.
             frozen_sequence = incumbent.candidate.sequence
             frozen_discovery_margin = incumbent.discovery_margin
-            confirmation_result = _coerce_score_result(
-                confirmation_score(incumbent.candidate)
-            )
-            hidden_margin = confirmation_result.value
-            accountant.confirmation(
-                query_index=query_index,
-                raw_calls=(
-                    confirmation_result.raw_model_calls
-                ),
-                cache_hits=confirmation_result.cache_hits,
-            )
+            hidden_margin = None
+            if confirmation_score is not None:
+                confirmation_result = _coerce_score_result(
+                    confirmation_score(incumbent.candidate)
+                )
+                hidden_margin = confirmation_result.value
+                accountant.confirmation(
+                    query_index=query_index,
+                    raw_calls=confirmation_result.raw_model_calls,
+                    cache_hits=confirmation_result.cache_hits,
+                )
 
             snapshots.append(
                 CheckpointSnapshot(

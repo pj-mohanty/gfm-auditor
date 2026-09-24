@@ -7,9 +7,26 @@ experiment. The authoritative machine-readable specification is:
 config/locked_primary_omnidna20m_k2.yaml
 ```
 
+After recording the implementation commit, use a fresh Colab GPU runtime
+with Drive mounted at `/content/drive`. From the installed repository root:
+
+```bash
+python -m agenticls_auditor.locked_run search --drive /content/drive/MyDrive/AgenticLS
+python -m agenticls_auditor.locked_run confirm --drive /content/drive/MyDrive/AgenticLS
+```
+
+Run confirmation only after all 750 search trajectories complete. The second
+command validates the entire saved search set before loading the model or
+issuing any hidden-control call. Outputs are separate under
+`locked_results/omnidna20m_k2_<commit>/search/` and `confirmation/`.
+
 ## Before execution
 
-The run must start from a fresh Colab GPU runtime and the current `main` branch.
+The run must start from a fresh Colab GPU runtime at the explicitly recorded
+implementation commit. The protocol amendment adding validation feedback and
+separate search/confirmation phases was made before any locked model outcome
+was observed; retain both the original configuration and the amended commit
+in the final report.
 Before model loading, verify all of the following:
 
 - The locked configuration passes `load_locked_config`.
@@ -68,9 +85,8 @@ confirmation sequences, embeddings, margins, or summaries.
 At each checkpoint, freeze the incumbent candidate hash before confirmation is
 computed. Confirmation must not change which candidate was selected.
 
-For the strongest audit trail, store pre-confirmation checkpoint records first.
-Run the hidden-confirmation join only after all 750 trajectories have passed
-completeness and budget checks.
+Store pre-confirmation checkpoint records first. Run hidden confirmation only
+after all 750 trajectories have passed completeness and budget checks.
 
 ## Required accounting
 

@@ -101,6 +101,9 @@ def checkpoint_results_from_trajectory(
             snapshot.incumbent_sequence
         )
 
+        if snapshot.confirmation_margin is None:
+            raise ValueError("hidden confirmation is not available")
+
         severity = confirmed_severity(
             snapshot.confirmation_margin,
             delta,

@@ -89,6 +89,19 @@ def test_hidden_confirmation_cannot_change_the_incumbent():
     assert result.events[10].candidate_sequence == "candidate-11"
 
 
+def test_deferred_confirmation_never_calls_hidden_scorer():
+    result = run_trajectory(
+        policy=OrderedPolicy(),
+        candidates=make_candidates(),
+        discovery_score=lambda candidate: -candidate_number(candidate),
+        validation_score=lambda candidate: 0.0,
+        confirmation_score=None,
+    )
+    assert [row.checkpoint for row in result.checkpoints] == [5, 10, 20, 40]
+    assert all(row.confirmation_margin is None for row in result.checkpoints)
+    assert all(event["event"] != "final_confirmation" for event in result.accountant.events)
+
+
 def test_cumulative_validation_budgets_are_never_exceeded():
     candidates = make_candidates()
 

@@ -81,3 +81,26 @@ def test_confirmation_events_do_not_enter_auditor_decisions():
         for decision in auditor.state.decisions
     )
     assert len(result.checkpoints) == 4
+
+
+def test_online_validation_disagreement_changes_next_auditor_action():
+    auditor = ClosedLoopAuditor(seed=11)
+
+    result = run_trajectory(
+        policy=auditor,
+        candidates=make_candidates(),
+        discovery_score=lambda candidate: -0.2,
+        validation_score=lambda candidate: 0.1,
+        confirmation_score=lambda candidate: -9999.0,
+    )
+
+    feedback = auditor.state.validation_feedback
+    assert feedback
+    assert feedback[0]["restart_next_query"] is True
+    first_validation_query = next(
+        event.query_index
+        for event in result.events
+        if event.validation_performed
+    )
+    assert result.events[first_validation_query].policy_action == "random_restart"
+    assert len(auditor.state.decisions) == 40

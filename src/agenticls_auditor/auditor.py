@@ -16,7 +16,9 @@ class AuditorState:
     stagnation: int = 0
     best_margin: float = float("inf")
     last_action: str = "uninitialized"
+    validation_disagreement: bool = False
     decisions: list[dict] = field(default_factory=list)
+    validation_feedback: list[dict] = field(default_factory=list)
 
 
 class ClosedLoopAuditor(FixedMultistagePolicy):
@@ -43,7 +45,7 @@ class ClosedLoopAuditor(FixedMultistagePolicy):
             else:
                 self.state.stagnation += 1
 
-        if self.state.stagnation >= 3:
+        if self.state.validation_disagreement or self.state.stagnation >= 3:
             candidate = RandomPolicy.choose(
                 self,
                 candidates,
@@ -52,6 +54,7 @@ class ClosedLoopAuditor(FixedMultistagePolicy):
             )
             action = "random_restart"
             self.state.stagnation = 0
+            self.state.validation_disagreement = False
         else:
             candidate = FixedMultistagePolicy.choose(
                 self,
@@ -75,6 +78,26 @@ class ClosedLoopAuditor(FixedMultistagePolicy):
             }
         )
         return candidate
+
+    def observe_validation(
+        self,
+        candidate: Candidate,
+        discovery_margin: float,
+        validation_margin: float,
+    ) -> None:
+        """Restart exploration when validation rejects a discovery violation."""
+        self.state.validation_disagreement = (
+            discovery_margin < 0 <= validation_margin
+        )
+        self.state.validation_feedback.append(
+            {
+                "action": "validation_feedback",
+                "candidate_sequence": candidate.sequence,
+                "discovery_margin": discovery_margin,
+                "validation_margin": validation_margin,
+                "restart_next_query": self.state.validation_disagreement,
+            }
+        )
 
     def action_name(self, query_index: int) -> str:
         return self.state.last_action

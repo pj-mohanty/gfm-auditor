@@ -238,6 +238,13 @@ def run_trajectory(
                 cache_hits=validation_result.cache_hits,
             )
             validation_performed = True
+            feedback = getattr(policy, "observe_validation", None)
+            if feedback is not None:
+                feedback(
+                    incumbent.candidate,
+                    incumbent.discovery_margin,
+                    validation_margin,
+                )
 
         events.append(
             TrajectoryEvent(

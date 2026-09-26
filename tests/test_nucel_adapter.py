@@ -30,3 +30,9 @@ def test_invalid_sequence_and_width():
         adapter.embed("ACNT")
     with pytest.raises(RuntimeError, match="shape"):
         adapter._validate_embedding(np.zeros(256, dtype=np.float32))
+
+
+def test_pinned_single_nucleotide_vocabulary():
+    assert NucEL93MAdapter.nucleotide_ids == {
+        "A": 11, "C": 12, "G": 13, "T": 14,
+    }

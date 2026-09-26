@@ -511,10 +511,10 @@ def run_integrated_trajectory(
         summarize_trajectory,
     )
 
-    if len(gene.candidates) != 40:
+    if len(gene.candidates) < 40:
         raise ValueError(
             "integration trajectory requires "
-            "exactly 40 frozen candidates"
+            "at least 40 frozen candidates"
         )
 
     policy = make_policy(

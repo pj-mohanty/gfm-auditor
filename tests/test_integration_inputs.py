@@ -4,6 +4,7 @@ from hashlib import sha256
 import json
 
 import numpy as np
+import pytest
 
 from agenticls_auditor.integration import (
     ControlBankScorer,
@@ -154,14 +155,15 @@ def test_confirmation_reference_hides_sequences():
 
 
 
-def test_integrated_runner_produces_four_checkpoints():
+@pytest.mark.parametrize("candidate_count", [40, 80])
+def test_integrated_runner_produces_four_checkpoints(candidate_count):
     from agenticls_auditor.integration import (
         run_integrated_trajectory,
     )
 
     records = []
 
-    for index in range(1, 41):
+    for index in range(1, candidate_count + 1):
         candidate = Candidate(
             source_id="gene-1",
             sequence=f"candidate-{index:02d}",
@@ -222,6 +224,8 @@ def test_integrated_runner_produces_four_checkpoints():
         == 10
     )
     assert len(result.checkpoint_records) == 4
+    assert len({event.candidate_sequence for event in result.trajectory.events}) == 40
+    assert len(gene.candidates) == candidate_count
     assert [
         row.checkpoint
         for row in result.checkpoint_records

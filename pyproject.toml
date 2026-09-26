@@ -18,6 +18,12 @@ omnidna = [
     "tokenizers>=0.21,<0.22",
     "safetensors>=0.4",
 ]
+nucel = [
+    "transformers==4.50.3",
+    "huggingface-hub>=0.24,<1.0",
+    "torch>=2.0",
+    "safetensors>=0.4",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -25,4 +31,3 @@ where = ["src"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
-

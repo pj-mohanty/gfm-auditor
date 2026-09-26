@@ -1,6 +1,7 @@
 from .base import BaseModelAdapter, DeterministicMockAdapter
 from .cache import CachedEmbedding, EmbeddingCache
 from .omnidna import EmbeddingCall, OmniDNA20MAdapter, OmniDNA116MAdapter
+from .nucel import NucEL93MAdapter
 
 __all__ = [
     "BaseModelAdapter",
@@ -10,4 +11,5 @@ __all__ = [
     "EmbeddingCall",
     "OmniDNA20MAdapter",
     "OmniDNA116MAdapter",
+    "NucEL93MAdapter",
 ]

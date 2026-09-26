@@ -3,6 +3,7 @@ import pytest
 
 from agenticls_auditor.models.omnidna import (
     OmniDNA20MAdapter,
+    OmniDNA116MAdapter,
 )
 
 
@@ -111,3 +112,24 @@ def test_adapter_records_reproducibility_metadata():
     assert result.metadata["window_aggregation"] == (
         "global_biological_token_mean"
     )
+
+
+def test_116m_checkpoint_is_distinct_and_uses_same_pooling():
+    small = OmniDNA20MAdapter()
+    large = OmniDNA116MAdapter()
+
+    assert large.name == "omnidna-116m"
+    assert large.model_id == "zehui127/Omni-DNA-116M"
+    assert large.revision == (
+        "8a602a8324e1c29aff91112a7b78cad841d4c9d5"
+    )
+    assert large.weights_sha256 == (
+        "c0aa9f88b0d4d371a2056d17b1dbeac6100f5ec74bb8fc20223ec7bc2e6b5491"
+    )
+    assert large.embedding_width == 768
+    assert large.cache_namespace != small.cache_namespace
+    assert large.pooling_name == small.pooling_name
+
+    large._validate_embedding(np.zeros(768, dtype=np.float32))
+    with pytest.raises(RuntimeError, match="unexpected embedding shape"):
+        large._validate_embedding(np.zeros(256, dtype=np.float32))

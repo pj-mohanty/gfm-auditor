@@ -491,3 +491,16 @@ class OmniDNA20MAdapter(BaseModelAdapter):
         }
 
         return embedding, metadata, len(windows)
+
+
+class OmniDNA116MAdapter(OmniDNA20MAdapter):
+    """Pinned 116M checkpoint with the same biological-token pooling."""
+
+    name = "omnidna-116m"
+    model_id = "zehui127/Omni-DNA-116M"
+    revision = "8a602a8324e1c29aff91112a7b78cad841d4c9d5"
+    weights_sha256 = (
+        "c0aa9f88b0d4d371a2056d17b1dbeac6"
+        "100f5ec74bb8fc20223ec7bc2e6b5491"
+    )
+    embedding_width = 768

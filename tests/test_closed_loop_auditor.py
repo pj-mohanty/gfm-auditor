@@ -34,7 +34,7 @@ def test_auditor_records_every_search_decision():
     )
     assert all(
         event.policy_action
-        in {"random", "greedy", "beam", "random_restart"}
+        in {"random", "greedy", "beam", "random_restart", "validation_restart"}
         for event in result.events
     )
 
@@ -81,3 +81,37 @@ def test_confirmation_events_do_not_enter_auditor_decisions():
         for decision in auditor.state.decisions
     )
     assert len(result.checkpoints) == 4
+
+
+def test_validation_feedback_changes_next_search_choice():
+    def run_with_validation(value: float):
+        auditor = ClosedLoopAuditor(seed=11)
+        result = run_trajectory(
+            policy=auditor,
+            candidates=make_candidates(80),
+            discovery_score=lambda candidate: (
+                -int(candidate.sequence.rsplit("-", 1)[1]) / 1000
+            ),
+            validation_score=lambda candidate: value,
+            confirmation_score=lambda candidate: 0.0,
+            validation_decision=lambda query, history, accountant: (
+                query == 16
+            ),
+        )
+        return auditor, result
+
+    rejected, rejected_run = run_with_validation(1.0)
+    supported, supported_run = run_with_validation(-1.0)
+
+    assert rejected.state.validation_feedback[0][
+        "restart_next_query"
+    ] is True
+    assert supported.state.validation_feedback[0][
+        "restart_next_query"
+    ] is False
+    assert rejected_run.events[16].policy_action == "validation_restart"
+    assert supported_run.events[16].policy_action == "greedy"
+    assert (
+        rejected_run.events[16].candidate_sequence
+        != supported_run.events[16].candidate_sequence
+    )

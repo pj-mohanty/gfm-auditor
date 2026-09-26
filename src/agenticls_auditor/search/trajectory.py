@@ -238,6 +238,15 @@ def run_trajectory(
                 cache_hits=validation_result.cache_hits,
             )
             validation_performed = True
+            observe_validation = getattr(
+                policy, "observe_validation", None
+            )
+            if observe_validation is not None:
+                observe_validation(
+                    incumbent.candidate,
+                    incumbent.discovery_margin,
+                    validation_margin,
+                )
 
         events.append(
             TrajectoryEvent(

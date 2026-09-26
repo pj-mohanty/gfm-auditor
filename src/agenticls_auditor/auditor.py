@@ -17,6 +17,8 @@ class AuditorState:
     best_margin: float = float("inf")
     last_action: str = "uninitialized"
     decisions: list[dict] = field(default_factory=list)
+    pending_validation_mode: str | None = None
+    validation_feedback: list[dict] = field(default_factory=list)
 
 
 class ClosedLoopAuditor(FixedMultistagePolicy):
@@ -43,7 +45,23 @@ class ClosedLoopAuditor(FixedMultistagePolicy):
             else:
                 self.state.stagnation += 1
 
-        if self.state.stagnation >= 3:
+        if self.state.pending_validation_mode == "explore":
+            candidate = RandomPolicy.choose(
+                self, candidates, history, query_index,
+            )
+            action = "validation_restart"
+            self.state.pending_validation_mode = None
+            self.state.stagnation = 0
+        elif self.state.pending_validation_mode == "exploit":
+            candidate = FixedMultistagePolicy.choose(
+                self, candidates, history, query_index,
+            )
+            action = FixedMultistagePolicy.action_name(
+                self, query_index,
+            )
+            self.state.pending_validation_mode = None
+            self.state.stagnation = 0
+        elif self.state.stagnation >= 3:
             candidate = RandomPolicy.choose(
                 self,
                 candidates,
@@ -75,6 +93,30 @@ class ClosedLoopAuditor(FixedMultistagePolicy):
             }
         )
         return candidate
+
+    def observe_validation(
+        self,
+        candidate: Candidate,
+        discovery_margin: float,
+        validation_margin: float,
+    ) -> None:
+        """Explore another position group after validation weakens a claim.
+
+        Lower margins represent stronger violations. This rule is fixed
+        before the prospective run; confirmation scores never reach it.
+        """
+        disagrees = validation_margin > discovery_margin
+        self.state.pending_validation_mode = (
+            "explore" if disagrees else "exploit"
+        )
+        self.state.validation_feedback.append(
+            {
+                "candidate_sequence": candidate.sequence,
+                "discovery_margin": discovery_margin,
+                "validation_margin": validation_margin,
+                "restart_next_query": disagrees,
+            }
+        )
 
     def action_name(self, query_index: int) -> str:
         return self.state.last_action

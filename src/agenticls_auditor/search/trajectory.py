@@ -227,8 +227,18 @@ def run_trajectory(
         validation_margin: float | None = None
 
         if wants_validation and remaining_allowance > 0:
+            validation_target = incumbent
+            choose_validation_target = getattr(
+                policy, "choose_validation_target", None
+            )
+            if choose_validation_target is not None:
+                validation_target = choose_validation_target(history)
+                if validation_target not in history:
+                    raise ValueError(
+                        "policy selected an unevaluated validation target"
+                    )
             validation_result = _coerce_score_result(
-                validation_score(incumbent.candidate)
+                validation_score(validation_target.candidate)
             )
             validation_margin = validation_result.value
             accountant.validation(
@@ -243,10 +253,16 @@ def run_trajectory(
             )
             if observe_validation is not None:
                 observe_validation(
-                    incumbent.candidate,
-                    incumbent.discovery_margin,
+                    validation_target.candidate,
+                    validation_target.discovery_margin,
                     validation_margin,
                 )
+
+        nominate_incumbent = getattr(policy, "nominate_incumbent", None)
+        if nominate_incumbent is not None:
+            incumbent = nominate_incumbent(history)
+            if incumbent not in history:
+                raise ValueError("policy nominated an unevaluated candidate")
 
         events.append(
             TrajectoryEvent(

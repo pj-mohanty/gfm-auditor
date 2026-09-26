@@ -1,5 +1,6 @@
 from agenticls_auditor.auditor import ClosedLoopAuditor
 from agenticls_auditor.mutations import Candidate
+from agenticls_auditor.search.base import Observation
 from agenticls_auditor.search.trajectory import run_trajectory
 
 
@@ -115,3 +116,48 @@ def test_validation_feedback_changes_next_search_choice():
         rejected_run.events[16].candidate_sequence
         != supported_run.events[16].candidate_sequence
     )
+
+
+def test_validation_margins_change_nominated_incumbent():
+    candidates = make_candidates(2)
+    history = [
+        Observation(candidates[0], -0.9),
+        Observation(candidates[1], -0.8),
+    ]
+    first = ClosedLoopAuditor(seed=11)
+    second = ClosedLoopAuditor(seed=11)
+
+    for auditor in (first, second):
+        auditor.observe_validation(candidates[0], -0.9, -0.1)
+    first.observe_validation(candidates[1], -0.8, -0.7)
+    second.observe_validation(candidates[1], -0.8, 0.1)
+
+    assert first.nominate_incumbent(history).candidate == candidates[1]
+    assert second.nominate_incumbent(history).candidate == candidates[0]
+
+
+def test_confirmation_does_not_change_auditor_nomination():
+    def run(hidden_score):
+        auditor = ClosedLoopAuditor(seed=17)
+        result = run_trajectory(
+            policy=auditor,
+            candidates=make_candidates(80),
+            discovery_score=lambda candidate: -0.2,
+            validation_score=lambda candidate: -0.1,
+            confirmation_score=lambda candidate: hidden_score,
+        )
+        return [row.incumbent_sequence for row in result.checkpoints]
+
+    assert run(-100.0) == run(100.0)
+
+
+def test_auditor_uses_validation_budget_on_distinct_candidates():
+    auditor = ClosedLoopAuditor(seed=11)
+    run_trajectory(
+        policy=auditor,
+        candidates=make_candidates(80),
+        discovery_score=lambda candidate: -0.2,
+        validation_score=lambda candidate: -0.1,
+        confirmation_score=lambda candidate: 0.0,
+    )
+    assert len(auditor.state.validation_margins) == 10

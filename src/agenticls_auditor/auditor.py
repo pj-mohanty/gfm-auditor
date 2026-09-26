@@ -19,6 +19,7 @@ class AuditorState:
     decisions: list[dict] = field(default_factory=list)
     pending_validation_mode: str | None = None
     validation_feedback: list[dict] = field(default_factory=list)
+    validation_margins: dict[str, float] = field(default_factory=dict)
 
 
 class ClosedLoopAuditor(FixedMultistagePolicy):
@@ -116,6 +117,53 @@ class ClosedLoopAuditor(FixedMultistagePolicy):
                 "validation_margin": validation_margin,
                 "restart_next_query": disagrees,
             }
+        )
+        self.state.validation_margins[candidate.sequence] = validation_margin
+
+    def nominate_incumbent(
+        self,
+        history: list[Observation],
+    ) -> Observation:
+        """Select the strongest validated evaluated candidate, if any."""
+        validated = [
+            observation for observation in history
+            if observation.candidate.sequence in self.state.validation_margins
+        ]
+        if validated:
+            return min(
+                validated,
+                key=lambda observation: (
+                    self.state.validation_margins[
+                        observation.candidate.sequence
+                    ],
+                    observation.discovery_margin,
+                    observation.candidate.sequence,
+                ),
+            )
+        return min(
+            history,
+            key=lambda observation: (
+                observation.discovery_margin,
+                observation.candidate.sequence,
+            ),
+        )
+
+    def choose_validation_target(
+        self,
+        history: list[Observation],
+    ) -> Observation:
+        """Validate the best discovery candidate not already validated."""
+        remaining = [
+            observation for observation in history
+            if observation.candidate.sequence not in self.state.validation_margins
+        ]
+        pool = remaining if remaining else history
+        return min(
+            pool,
+            key=lambda observation: (
+                observation.discovery_margin,
+                observation.candidate.sequence,
+            ),
         )
 
     def action_name(self, query_index: int) -> str:

@@ -31,7 +31,17 @@ python -m agenticls_auditor.smoke --config config/experiment.yaml
 ```
 
 The smoke test uses a deterministic mock embedding model and five synthetic
-coding sequences. Real model adapters should subclass `BaseModelAdapter`.
+coding sequences. Frozen Omni-DNA and NucEL adapters are available through
+separate optional dependency sets.
+
+## Three-model paper reproducibility
+
+The completed $k=2$ paper covers Omni-DNA-20M, Omni-DNA-116M, and
+NucEL-93M. See [the reproduction guide](docs/paper_reproducibility.md) for
+the frozen input hashes, separate model environments, an optional GPU rerun,
+and a CPU command that rebuilds the paper's paired statistics from the three
+archived analysis bundles. The later five-gene validation-feedback experiment
+is exploratory and is not substituted for any locked run.
 
 ## Workstream ownership
 
